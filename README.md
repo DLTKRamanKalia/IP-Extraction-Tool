@@ -80,19 +80,19 @@ You should see output like:
 AWS VPC and Subnet Information Extraction Tool
 ============================================================
 Starting Flask application...
-Access the application at: http://localhost:5001
+Access the application at: http://localhost:5002
 ============================================================
- * Running on http://127.0.0.1:5001
- * Running on http://10.10.5.122:5001
+ * Running on http://127.0.0.1:5002
+ * Running on http://10.10.5.122:5002
 ```
 
-**Note:** The application runs on port **5001** instead of 5000 to avoid conflicts with macOS AirPlay Receiver which uses port 5000 by default.
+**Note:** The application runs on port **5002** instead of 5000 to avoid conflicts with macOS AirPlay Receiver which uses port 5000 by default.
 
 ### 2. Access the Web Interface
 
 Open your web browser and navigate to:
 ```
-http://localhost:5001
+http://localhost:5002
 ```
 
 ### 3. Scan AWS Infrastructure
