@@ -46,6 +46,31 @@ class Config:
             'secret_access_key': self.config['AWS'].get('secret_access_key')
         }
 
+    def get_aws_credentials_for_account(self, account):
+        account_csv_map = {
+            'deltekdev': 'Key/deltekDev_aws_dba-cli-user.csv',
+            'GOSS': 'Key/GOSS_Readonly_accessKeys.csv'
+        }
+        if account not in account_csv_map:
+            raise ValueError(f"Unknown AWS account: '{account}'")
+        csv_path = account_csv_map[account]
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"Credentials file not found: {csv_path}")
+        try:
+            with open(csv_path, 'r', encoding='utf-8-sig') as file:
+                csv_reader = csv.DictReader(file)
+                for row in csv_reader:
+                    access_key = row.get('Access key ID', '').strip()
+                    secret_key = row.get('Secret access key', '').strip()
+                    if access_key and secret_key:
+                        return {
+                            'access_key_id': access_key,
+                            'secret_access_key': secret_key
+                        }
+        except Exception as e:
+            raise Exception(f"Error reading credentials for account '{account}': {str(e)}")
+        raise ValueError(f"No valid credentials found in {csv_path}")
+
     def get_azure_credentials(self):
         if 'AZURE' not in self.config:
             raise ValueError(

@@ -4,10 +4,13 @@ from botocore.exceptions import ClientError, NoCredentialsError
 from config import config
 
 class AWSService:
-    def __init__(self):
+    def __init__(self, account=None):
         """Initialize AWS service with credentials from config"""
         try:
-            credentials = config.get_aws_credentials()
+            if account:
+                credentials = config.get_aws_credentials_for_account(account)
+            else:
+                credentials = config.get_aws_credentials()
             self.access_key = credentials['access_key_id']
             self.secret_key = credentials['secret_access_key']
         except Exception as e:
@@ -109,17 +112,26 @@ class AWSService:
 
         return results
 
-    def scan_all_regions(self):
-        """Scan all AWS regions and collect VPC/Subnet information"""
+    def scan_all_regions(self, region=None):
+        """Scan one or all AWS regions and collect VPC/Subnet information.
+
+        Args:
+            region: None or "all" → scan every region;
+                    a region code (e.g. "us-east-1") → scan only that region.
+        """
         all_results = []
 
         try:
-            regions = self.get_all_regions()
-            print(f"Scanning {len(regions)} AWS regions...")
+            if region and region != 'all':
+                regions = [region]
+            else:
+                regions = self.get_all_regions()
 
-            for region in regions:
-                print(f"Scanning region: {region}")
-                region_results = self.get_vpc_and_subnet_info(region)
+            print(f"Scanning {len(regions)} AWS region(s)...")
+
+            for r in regions:
+                print(f"Scanning region: {r}")
+                region_results = self.get_vpc_and_subnet_info(r)
                 all_results.extend(region_results)
 
             return {

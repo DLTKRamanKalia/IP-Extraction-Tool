@@ -35,32 +35,114 @@
 
         <!-- Control Panel -->
         <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h5 class="card-title">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-1">
                     <i class="bi bi-gear-fill me-2"></i>
                     Control Panel
                 </h5>
-                <p class="card-text text-muted">
-                    Extract VNet/VPC/VCN and Subnet information from cloud infrastructure
+                <p class="card-text text-muted small mb-4">
+                    Extract VNet / VPC / VCN and Subnet information from cloud infrastructure
                 </p>
-                <div class="d-flex gap-2 flex-wrap">
+
+                <!-- Scan Actions -->
+                <div class="d-flex gap-2 flex-wrap mb-4">
                     <button class="btn btn-primary" id="scanButton">
-                        <i class="bi bi-search me-2"></i>
+                        <i class="bi bi-cloud-upload me-2"></i>
                         Scan AWS Infrastructure
                     </button>
                     <button class="btn btn-info text-white" id="scanAzureButton">
-                        <i class="bi bi-search me-2"></i>
+                        <i class="bi bi-microsoft me-2"></i>
                         Scan Azure Infrastructure
                     </button>
                     <button class="btn btn-danger" id="scanOciButton">
-                        <i class="bi bi-search me-2"></i>
+                        <i class="bi bi-circle-fill me-2"></i>
                         Scan OCI Infrastructure
                     </button>
-                    <button class="btn btn-success" id="exportButton" disabled>
-                        <i class="bi bi-download me-2"></i>
-                        Export to CSV
-                    </button>
+                    <div class="ms-auto">
+                        <button class="btn btn-outline-success" id="exportButton" disabled>
+                            <i class="bi bi-download me-2"></i>
+                            Export to CSV
+                        </button>
+                    </div>
                 </div>
+
+                <!-- AWS Configuration -->
+                <div class="aws-config-panel rounded-3 p-3">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-cloud-fill text-primary me-2"></i>
+                        <span class="fw-semibold small text-uppercase" style="letter-spacing:.06em;">AWS Configuration</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-sm-6 col-lg-4">
+                            <label class="form-label small fw-medium mb-1" for="awsAccountSelect">Account</label>
+                            <select class="form-select form-select-sm" id="awsAccountSelect">
+                                <option value="">Select AWS Account</option>
+                                <option value="deltekdev">deltekdev</option>
+                                <option value="GOSS">GOSS</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6 col-lg-4">
+                            <label class="form-label small fw-medium mb-1" for="awsRegionSelect">Region</label>
+                            <select class="form-select form-select-sm" id="awsRegionSelect">
+                                <option value="">Select AWS Region</option>
+                                <option value="all">— All Regions —</option>
+                                <optgroup label="US East">
+                                    <option value="us-east-1">us-east-1 &nbsp; N. Virginia</option>
+                                    <option value="us-east-2">us-east-2 &nbsp; Ohio</option>
+                                </optgroup>
+                                <optgroup label="US West">
+                                    <option value="us-west-1">us-west-1 &nbsp; N. California</option>
+                                    <option value="us-west-2">us-west-2 &nbsp; Oregon</option>
+                                </optgroup>
+                                <optgroup label="Africa">
+                                    <option value="af-south-1">af-south-1 &nbsp; Cape Town</option>
+                                </optgroup>
+                                <optgroup label="Asia Pacific">
+                                    <option value="ap-east-1">ap-east-1 &nbsp; Hong Kong</option>
+                                    <option value="ap-south-1">ap-south-1 &nbsp; Mumbai</option>
+                                    <option value="ap-south-2">ap-south-2 &nbsp; Hyderabad</option>
+                                    <option value="ap-southeast-1">ap-southeast-1 &nbsp; Singapore</option>
+                                    <option value="ap-southeast-2">ap-southeast-2 &nbsp; Sydney</option>
+                                    <option value="ap-southeast-3">ap-southeast-3 &nbsp; Jakarta</option>
+                                    <option value="ap-southeast-4">ap-southeast-4 &nbsp; Melbourne</option>
+                                    <option value="ap-southeast-5">ap-southeast-5 &nbsp; Malaysia</option>
+                                    <option value="ap-southeast-7">ap-southeast-7 &nbsp; Thailand</option>
+                                    <option value="ap-northeast-1">ap-northeast-1 &nbsp; Tokyo</option>
+                                    <option value="ap-northeast-2">ap-northeast-2 &nbsp; Seoul</option>
+                                    <option value="ap-northeast-3">ap-northeast-3 &nbsp; Osaka</option>
+                                </optgroup>
+                                <optgroup label="Canada">
+                                    <option value="ca-central-1">ca-central-1 &nbsp; Central</option>
+                                    <option value="ca-west-1">ca-west-1 &nbsp; Calgary</option>
+                                </optgroup>
+                                <optgroup label="Europe">
+                                    <option value="eu-central-1">eu-central-1 &nbsp; Frankfurt</option>
+                                    <option value="eu-central-2">eu-central-2 &nbsp; Zurich</option>
+                                    <option value="eu-west-1">eu-west-1 &nbsp; Ireland</option>
+                                    <option value="eu-west-2">eu-west-2 &nbsp; London</option>
+                                    <option value="eu-west-3">eu-west-3 &nbsp; Paris</option>
+                                    <option value="eu-north-1">eu-north-1 &nbsp; Stockholm</option>
+                                    <option value="eu-south-1">eu-south-1 &nbsp; Milan</option>
+                                    <option value="eu-south-2">eu-south-2 &nbsp; Spain</option>
+                                </optgroup>
+                                <optgroup label="Israel">
+                                    <option value="il-central-1">il-central-1 &nbsp; Tel Aviv</option>
+                                </optgroup>
+                                <optgroup label="Mexico">
+                                    <option value="mx-central-1">mx-central-1 &nbsp; Central</option>
+                                </optgroup>
+                                <optgroup label="Middle East">
+                                    <option value="me-central-1">me-central-1 &nbsp; UAE</option>
+                                    <option value="me-south-1">me-south-1 &nbsp; Bahrain</option>
+                                </optgroup>
+                                <optgroup label="South America">
+                                    <option value="sa-east-1">sa-east-1 &nbsp; São Paulo</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 

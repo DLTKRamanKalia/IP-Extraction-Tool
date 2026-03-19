@@ -216,6 +216,27 @@ body.dark-theme .table-responsive::-webkit-scrollbar-thumb {
     background: #555;
 }
 
+/* AWS Config Panel */
+.aws-config-panel {
+    background-color: #f0f4ff;
+    border: 1px solid #d0deff;
+}
+
+body.dark-theme .aws-config-panel {
+    background-color: #1e2a3a;
+    border-color: #2d3f5a;
+}
+
+body.dark-theme .form-select {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #3d3d3d;
+}
+
+body.dark-theme .form-label {
+    color: #adb5bd;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .card-body h2 {

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, send_file
+from flask import Flask, render_template, jsonify, send_file, request
 import pandas as pd
 import io
 from datetime import datetime
@@ -21,12 +21,13 @@ def scan_aws():
     """Scan all AWS regions for VPC and Subnet information"""
     global scan_results
 
-    try:
-        # Initialize AWS service
-        aws_service = AWSService()
+    body = request.get_json(silent=True) or {}
+    account = body.get('account')
+    region = body.get('region')  # "all" or a specific region code
 
-        # Scan all regions
-        result = aws_service.scan_all_regions()
+    try:
+        aws_service = AWSService(account=account)
+        result = aws_service.scan_all_regions(region=region)
 
         if result['success']:
             scan_results = result['data']

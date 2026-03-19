@@ -2,6 +2,8 @@
 let scanData = [];
 
 // DOM Elements
+const awsAccountSelect = document.getElementById('awsAccountSelect');
+const awsRegionSelect = document.getElementById('awsRegionSelect');
 const scanButton = document.getElementById('scanButton');
 const scanAzureButton = document.getElementById('scanAzureButton');
 const scanOciButton = document.getElementById('scanOciButton');
@@ -64,6 +66,8 @@ function showLoading(message = 'Scanning infrastructure... This may take a few m
     scanAzureButton.disabled = true;
     scanOciButton.disabled = true;
     exportButton.disabled = true;
+    awsAccountSelect.disabled = true;
+    awsRegionSelect.disabled = true;
     loadingMessage.textContent = message;
     loadingSpinner.style.display = 'block';
     resultsContainer.style.display = 'none';
@@ -75,6 +79,8 @@ function hideLoading() {
     scanButton.disabled = false;
     scanAzureButton.disabled = false;
     scanOciButton.disabled = false;
+    awsAccountSelect.disabled = false;
+    awsRegionSelect.disabled = false;
     loadingSpinner.style.display = 'none';
 }
 
@@ -162,15 +168,31 @@ async function runScan(endpoint, provider, loadingMsg, successMsg, errorMsg) {
 
 // Scan AWS Infrastructure
 scanButton.addEventListener('click', async () => {
+    const account = awsAccountSelect.value;
+    const region = awsRegionSelect.value;
+
+    if (!account) {
+        showAlert('Please select an AWS account first.', 'warning');
+        return;
+    }
+    if (!region) {
+        showAlert('Please select an AWS region.', 'warning');
+        return;
+    }
+
+    const regionLabel = awsRegionSelect.options[awsRegionSelect.selectedIndex].text.trim();
+    const loadingMsg = region === 'all'
+        ? 'Scanning all AWS regions… This may take a few moments.'
+        : `Scanning AWS region: ${regionLabel}…`;
+
     try {
-        showLoading('Scanning AWS regions... This may take a few moments.');
-        showAlert('Starting AWS infrastructure scan...', 'info');
+        showLoading(loadingMsg);
+        showAlert(`Starting AWS scan — Account: ${account} · Region: ${regionLabel}`, 'info');
 
         const response = await fetch('/api/scan', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account, region })
         });
 
         const result = await response.json();
