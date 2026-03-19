@@ -3,6 +3,8 @@ import pandas as pd
 import io
 from datetime import datetime
 from aws_service import AWSService
+from azure_service import AzureService
+from oci_service import OCIService
 
 app = Flask(__name__)
 
@@ -46,6 +48,66 @@ def scan_aws():
             'error': str(e)
         }), 500
 
+@app.route('/api/scan-azure', methods=['POST'])
+def scan_azure():
+    """Scan all Azure regions for VNet and Subnet information"""
+    global scan_results
+
+    try:
+        azure_service = AzureService()
+        result = azure_service.scan_all_regions()
+
+        if result['success']:
+            scan_results = result['data']
+            return jsonify({
+                'success': True,
+                'data': scan_results,
+                'total_entries': result['total_entries'],
+                'regions_scanned': result['regions_scanned']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Unknown error occurred')
+            }), 500
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/scan-oci', methods=['POST'])
+def scan_oci():
+    """Scan all OCI regions for VCN and Subnet information"""
+    global scan_results
+
+    try:
+        oci_service = OCIService()
+        result = oci_service.scan_all_regions()
+
+        if result['success']:
+            scan_results = result['data']
+            return jsonify({
+                'success': True,
+                'data': scan_results,
+                'total_entries': result['total_entries'],
+                'regions_scanned': result['regions_scanned']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Unknown error occurred')
+            }), 500
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/export', methods=['GET'])
 def export_csv():
     """Export scan results to CSV file"""
@@ -63,11 +125,11 @@ def export_csv():
 
         # Reorder columns to match required format
         df = df[['region', 'vpc_id', 'vpc_name', 'vpc_cidr',
-                 'subnet_id', 'subnet_name', 'subnet_cidr']]
+                 'subnet_id', 'subnet_name', 'subnet_cidr', 'used_ips']]
 
         # Rename columns for better readability
         df.columns = ['Region', 'VPC ID', 'VPC Name', 'VPC CIDR',
-                      'Subnet ID', 'Subnet Name', 'Subnet CIDR']
+                      'Subnet ID', 'Subnet Name', 'Subnet CIDR', 'Used IPs']
 
         # Create CSV in memory
         output = io.BytesIO()

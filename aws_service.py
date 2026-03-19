@@ -1,3 +1,4 @@
+import ipaddress
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from config import config
@@ -67,6 +68,13 @@ class AWSService:
                         subnet_name = self._get_tag_value(subnet.get('Tags', []))
                         subnet_cidr = subnet['CidrBlock']
 
+                        # Calculate used IPs:
+                        # total IPs in CIDR - 5 AWS-reserved - available
+                        network = ipaddress.IPv4Network(subnet_cidr)
+                        aws_reserved = 5 if network.prefixlen < 31 else 0
+                        available = subnet.get('AvailableIpAddressCount', 0)
+                        used_ips = network.num_addresses - aws_reserved - available
+
                         results.append({
                             'region': region,
                             'vpc_id': vpc_id,
@@ -74,7 +82,8 @@ class AWSService:
                             'vpc_cidr': vpc_cidr,
                             'subnet_id': subnet_id,
                             'subnet_name': subnet_name,
-                            'subnet_cidr': subnet_cidr
+                            'subnet_cidr': subnet_cidr,
+                            'used_ips': used_ips
                         })
                 else:
                     # VPC with no subnets
@@ -85,7 +94,8 @@ class AWSService:
                         'vpc_cidr': vpc_cidr,
                         'subnet_id': '',
                         'subnet_name': '',
-                        'subnet_cidr': ''
+                        'subnet_cidr': '',
+                        'used_ips': 0
                     })
 
         except ClientError as e:

@@ -3,8 +3,11 @@ let scanData = [];
 
 // DOM Elements
 const scanButton = document.getElementById('scanButton');
+const scanAzureButton = document.getElementById('scanAzureButton');
+const scanOciButton = document.getElementById('scanOciButton');
 const exportButton = document.getElementById('exportButton');
 const loadingSpinner = document.getElementById('loadingSpinner');
+const loadingMessage = document.getElementById('loadingMessage');
 const resultsContainer = document.getElementById('resultsContainer');
 const statsContainer = document.getElementById('statsContainer');
 const resultsTableBody = document.getElementById('resultsTableBody');
@@ -56,9 +59,12 @@ function showAlert(message, type = 'info') {
 }
 
 // Show loading state
-function showLoading() {
+function showLoading(message = 'Scanning infrastructure... This may take a few moments.') {
     scanButton.disabled = true;
+    scanAzureButton.disabled = true;
+    scanOciButton.disabled = true;
     exportButton.disabled = true;
+    loadingMessage.textContent = message;
     loadingSpinner.style.display = 'block';
     resultsContainer.style.display = 'none';
     statsContainer.style.display = 'none';
@@ -67,6 +73,8 @@ function showLoading() {
 // Hide loading state
 function hideLoading() {
     scanButton.disabled = false;
+    scanAzureButton.disabled = false;
+    scanOciButton.disabled = false;
     loadingSpinner.style.display = 'none';
 }
 
@@ -89,7 +97,7 @@ function populateTable(data) {
     if (data.length === 0) {
         resultsTableBody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center text-muted">
+                <td colspan="8" class="text-center text-muted">
                     No VPCs or Subnets found in any region.
                 </td>
             </tr>
@@ -107,6 +115,7 @@ function populateTable(data) {
             <td><code>${item.subnet_id || '-'}</code></td>
             <td>${item.subnet_name || '-'}</td>
             <td><code>${item.subnet_cidr || '-'}</code></td>
+            <td>${item.used_ips != null ? item.used_ips : '-'}</td>
         `;
 
         // Add subtle animation
@@ -117,10 +126,44 @@ function populateTable(data) {
     resultsContainer.style.display = 'block';
 }
 
+// Generic scan handler
+async function runScan(endpoint, provider, loadingMsg, successMsg, errorMsg) {
+    try {
+        showLoading(loadingMsg);
+        showAlert(`Starting ${provider} infrastructure scan...`, 'info');
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            scanData = result.data;
+            populateTable(scanData);
+            updateStatistics(result.total_entries, result.regions_scanned);
+            exportButton.disabled = false;
+
+            showAlert(
+                `${successMsg} Found ${result.total_entries} entries across ${result.regions_scanned} regions.`,
+                'success'
+            );
+        } else {
+            showAlert(`Error: ${result.error}`, 'danger');
+        }
+    } catch (error) {
+        showAlert(`${errorMsg}: ${error.message}`, 'danger');
+        console.error('Scan error:', error);
+    } finally {
+        hideLoading();
+    }
+}
+
 // Scan AWS Infrastructure
 scanButton.addEventListener('click', async () => {
     try {
-        showLoading();
+        showLoading('Scanning AWS regions... This may take a few moments.');
         showAlert('Starting AWS infrastructure scan...', 'info');
 
         const response = await fetch('/api/scan', {
@@ -151,6 +194,28 @@ scanButton.addEventListener('click', async () => {
     } finally {
         hideLoading();
     }
+});
+
+// Scan Azure Infrastructure
+scanAzureButton.addEventListener('click', () => {
+    runScan(
+        '/api/scan-azure',
+        'Azure',
+        'Scanning Azure regions... This may take a few moments.',
+        'Azure scan completed successfully!',
+        'Failed to scan Azure infrastructure'
+    );
+});
+
+// Scan OCI Infrastructure
+scanOciButton.addEventListener('click', () => {
+    runScan(
+        '/api/scan-oci',
+        'OCI',
+        'Scanning OCI regions... This may take a few moments.',
+        'OCI scan completed successfully!',
+        'Failed to scan OCI infrastructure'
+    );
 });
 
 // Export to CSV

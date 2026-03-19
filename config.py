@@ -15,11 +15,8 @@ class Config:
         elif os.path.exists(self.csv_file):
             self._read_from_csv()
             self._save_config()
-        else:
-            raise FileNotFoundError(
-                f"Neither config.ini nor {self.csv_file} found. "
-                "Please ensure AWS credentials CSV file exists."
-            )
+        # If neither file exists, config stays empty — credential getters will
+        # raise specific errors when called, rather than failing at import time.
 
     def _read_from_csv(self):
         try:
@@ -47,6 +44,35 @@ class Config:
         return {
             'access_key_id': self.config['AWS'].get('access_key_id'),
             'secret_access_key': self.config['AWS'].get('secret_access_key')
+        }
+
+    def get_azure_credentials(self):
+        if 'AZURE' not in self.config:
+            raise ValueError(
+                "Azure credentials not found in configuration. "
+                "Add an [AZURE] section to config.ini with: "
+                "tenant_id, client_id, client_secret, subscription_id"
+            )
+        return {
+            'tenant_id': self.config['AZURE'].get('tenant_id'),
+            'client_id': self.config['AZURE'].get('client_id'),
+            'client_secret': self.config['AZURE'].get('client_secret'),
+            'subscription_id': self.config['AZURE'].get('subscription_id')
+        }
+
+    def get_oci_credentials(self):
+        if 'OCI' not in self.config:
+            raise ValueError(
+                "OCI credentials not found in configuration. "
+                "Add an [OCI] section to config.ini with: "
+                "tenancy_ocid, user_ocid, fingerprint, key_file, region"
+            )
+        return {
+            'tenancy_ocid': self.config['OCI'].get('tenancy_ocid'),
+            'user_ocid': self.config['OCI'].get('user_ocid'),
+            'fingerprint': self.config['OCI'].get('fingerprint'),
+            'key_file': self.config['OCI'].get('key_file'),
+            'region': self.config['OCI'].get('region')
         }
 
 config = Config()
