@@ -1,3 +1,4 @@
+import ipaddress
 from azure.identity import ClientSecretCredential
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.subscription import SubscriptionClient
@@ -30,6 +31,20 @@ class AzureService:
         except Exception as e:
             raise Exception(f"Failed to retrieve Azure regions: {str(e)}")
 
+    def _find_parent_cidr(self, subnet_cidr, vnet_cidrs):
+        """Return the VNet CIDR that contains this subnet, or the first CIDR."""
+        try:
+            subnet_net = ipaddress.ip_network(subnet_cidr, strict=False)
+            for cidr in vnet_cidrs:
+                try:
+                    if subnet_net.subnet_of(ipaddress.ip_network(cidr, strict=False)):
+                        return cidr
+                except (ValueError, TypeError):
+                    continue
+        except (ValueError, TypeError):
+            pass
+        return vnet_cidrs[0] if vnet_cidrs else ''
+
     def get_vnet_and_subnet_info(self, network_client):
         """Get all VNets and Subnets across the subscription"""
         results = []
@@ -43,23 +58,38 @@ class AzureService:
                 vnet_name = vnet.name
                 region = vnet.location
                 regions_seen.add(region)
-                address_prefixes = vnet.address_space.address_prefixes if vnet.address_space else []
-                vnet_cidr = ', '.join(address_prefixes) if address_prefixes else ''
+
+                # Collect all address prefixes (primary + any secondaries)
+                vnet_cidrs = list(vnet.address_space.address_prefixes) \
+                    if vnet.address_space and vnet.address_space.address_prefixes \
+                    else []
+                vnet_all_cidrs = ', '.join(vnet_cidrs)
 
                 subnets = vnet.subnets or []
 
                 if subnets:
                     for subnet in subnets:
+                        # Prefer address_prefix; fall back to first entry of address_prefixes
+                        subnet_cidr = subnet.address_prefix or (
+                            (subnet.address_prefixes or [''])[0]
+                        )
+
+                        # Identify which VNet CIDR this subnet belongs to
+                        parent_cidr = self._find_parent_cidr(subnet_cidr, vnet_cidrs) \
+                            if vnet_cidrs else ''
+
                         # ip_configurations holds one entry per assigned IP
                         used_ips = len(subnet.ip_configurations or [])
+
                         results.append({
                             'region': region,
                             'vpc_id': vnet_id,
                             'vpc_name': vnet_name,
-                            'vpc_cidr': vnet_cidr,
+                            'vpc_cidr': parent_cidr,
+                            'vpc_all_cidrs': vnet_all_cidrs,
                             'subnet_id': subnet.id,
                             'subnet_name': subnet.name,
-                            'subnet_cidr': subnet.address_prefix or '',
+                            'subnet_cidr': subnet_cidr,
                             'used_ips': used_ips
                         })
                 else:
@@ -67,7 +97,8 @@ class AzureService:
                         'region': region,
                         'vpc_id': vnet_id,
                         'vpc_name': vnet_name,
-                        'vpc_cidr': vnet_cidr,
+                        'vpc_cidr': vnet_cidrs[0] if vnet_cidrs else '',
+                        'vpc_all_cidrs': vnet_all_cidrs,
                         'subnet_id': '',
                         'subnet_name': '',
                         'subnet_cidr': '',

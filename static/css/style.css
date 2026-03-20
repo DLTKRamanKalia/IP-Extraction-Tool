@@ -216,6 +216,16 @@ body.dark-theme .table-responsive::-webkit-scrollbar-thumb {
     background: #555;
 }
 
+/* Multi-CIDR VPC rows */
+.multi-cidr-row {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+    border-left: 3px solid #0d6efd;
+}
+
+body.dark-theme .multi-cidr-row {
+    background-color: rgba(13, 110, 253, 0.12) !important;
+}
+
 /* AWS Config Panel */
 .aws-config-panel {
     background-color: #f0f4ff;

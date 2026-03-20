@@ -125,11 +125,16 @@ def export_csv():
         df = pd.DataFrame(scan_results)
 
         # Reorder columns to match required format
-        df = df[['region', 'vpc_id', 'vpc_name', 'vpc_cidr',
+        # vpc_all_cidrs only present for AWS scans; fill blanks for Azure/OCI
+        for col in ['vpc_all_cidrs']:
+            if col not in df.columns:
+                df[col] = ''
+
+        df = df[['region', 'vpc_id', 'vpc_name', 'vpc_cidr', 'vpc_all_cidrs',
                  'subnet_id', 'subnet_name', 'subnet_cidr', 'used_ips']]
 
         # Rename columns for better readability
-        df.columns = ['Region', 'VPC ID', 'VPC Name', 'VPC CIDR',
+        df.columns = ['Region', 'VPC ID', 'VPC Name', 'VPC CIDR', 'All VPC CIDRs',
                       'Subnet ID', 'Subnet Name', 'Subnet CIDR', 'Used IPs']
 
         # Create CSV in memory

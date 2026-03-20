@@ -103,7 +103,7 @@ function populateTable(data) {
     if (data.length === 0) {
         resultsTableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center text-muted">
+                <td colspan="9" class="text-center text-muted">
                     No VPCs or Subnets found in any region.
                 </td>
             </tr>
@@ -113,11 +113,18 @@ function populateTable(data) {
 
     data.forEach((item, index) => {
         const row = document.createElement('tr');
+        // Highlight rows where a VPC has multiple CIDRs
+        const hasMultiCidr = item.vpc_all_cidrs && item.vpc_all_cidrs.includes(',');
+        if (hasMultiCidr) row.classList.add('multi-cidr-row');
+
         row.innerHTML = `
             <td>${item.region || '-'}</td>
             <td><code>${item.vpc_id || '-'}</code></td>
             <td>${item.vpc_name || '-'}</td>
             <td><code>${item.vpc_cidr || '-'}</code></td>
+            <td>${item.vpc_all_cidrs
+                ? item.vpc_all_cidrs.split(', ').map(c => `<code>${c}</code>`).join('<br>')
+                : '-'}</td>
             <td><code>${item.subnet_id || '-'}</code></td>
             <td>${item.subnet_name || '-'}</td>
             <td><code>${item.subnet_cidr || '-'}</code></td>

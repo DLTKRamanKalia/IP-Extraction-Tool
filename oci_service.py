@@ -1,3 +1,4 @@
+import ipaddress
 import oci
 from config import config
 
@@ -27,6 +28,20 @@ class OCIService:
             return [r.region_name for r in regions]
         except Exception as e:
             raise Exception(f"Failed to retrieve OCI regions: {str(e)}")
+
+    def _find_parent_cidr(self, subnet_cidr, vcn_cidrs):
+        """Return the VCN CIDR that contains this subnet, or the first CIDR."""
+        try:
+            subnet_net = ipaddress.ip_network(subnet_cidr, strict=False)
+            for cidr in vcn_cidrs:
+                try:
+                    if subnet_net.subnet_of(ipaddress.ip_network(cidr, strict=False)):
+                        return cidr
+                except (ValueError, TypeError):
+                    continue
+        except (ValueError, TypeError):
+            pass
+        return vcn_cidrs[0] if vcn_cidrs else ''
 
     def get_vcn_and_subnet_info(self, region):
         """Get VCN and Subnet information for a specific OCI region"""
@@ -60,7 +75,13 @@ class OCIService:
                     for vcn in vcns:
                         vcn_id = vcn.id
                         vcn_name = vcn.display_name
-                        vcn_cidr = vcn.cidr_block or ''
+
+                        # cidr_blocks is the modern multi-CIDR list; fall back to
+                        # the legacy cidr_block field if it is absent or empty
+                        vcn_cidrs = list(vcn.cidr_blocks) \
+                            if vcn.cidr_blocks \
+                            else ([vcn.cidr_block] if vcn.cidr_block else [])
+                        vcn_all_cidrs = ', '.join(vcn_cidrs)
 
                         subnets = oci.pagination.list_call_get_all_results(
                             network_client.list_subnets,
@@ -70,6 +91,9 @@ class OCIService:
 
                         if subnets:
                             for subnet in subnets:
+                                subnet_cidr = subnet.cidr_block or ''
+                                parent_cidr = self._find_parent_cidr(subnet_cidr, vcn_cidrs)
+
                                 # Count private IPs assigned in this subnet
                                 try:
                                     private_ips = oci.pagination.list_call_get_all_results(
@@ -84,10 +108,11 @@ class OCIService:
                                     'region': region,
                                     'vpc_id': vcn_id,
                                     'vpc_name': vcn_name,
-                                    'vpc_cidr': vcn_cidr,
+                                    'vpc_cidr': parent_cidr,
+                                    'vpc_all_cidrs': vcn_all_cidrs,
                                     'subnet_id': subnet.id,
                                     'subnet_name': subnet.display_name,
-                                    'subnet_cidr': subnet.cidr_block or '',
+                                    'subnet_cidr': subnet_cidr,
                                     'used_ips': used_ips
                                 })
                         else:
@@ -95,7 +120,8 @@ class OCIService:
                                 'region': region,
                                 'vpc_id': vcn_id,
                                 'vpc_name': vcn_name,
-                                'vpc_cidr': vcn_cidr,
+                                'vpc_cidr': vcn_cidrs[0] if vcn_cidrs else '',
+                                'vpc_all_cidrs': vcn_all_cidrs,
                                 'subnet_id': '',
                                 'subnet_name': '',
                                 'subnet_cidr': '',

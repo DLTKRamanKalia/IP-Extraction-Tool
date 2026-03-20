@@ -42,6 +42,26 @@ class AWSService:
                     return tag['Value']
         return ''
 
+    def _get_vpc_cidrs(self, vpc):
+        """Return all associated IPv4 CIDRs for a VPC, falling back to primary."""
+        assocs = vpc.get('CidrBlockAssociationSet', [])
+        cidrs = [
+            a['CidrBlock'] for a in assocs
+            if a.get('CidrBlockState', {}).get('State') == 'associated'
+        ]
+        return cidrs if cidrs else [vpc['CidrBlock']]
+
+    def _find_parent_cidr(self, subnet_cidr, vpc_cidrs):
+        """Return the VPC CIDR that contains this subnet, or the first CIDR."""
+        subnet_net = ipaddress.IPv4Network(subnet_cidr)
+        for cidr in vpc_cidrs:
+            try:
+                if subnet_net.subnet_of(ipaddress.IPv4Network(cidr)):
+                    return cidr
+            except (ValueError, TypeError):
+                continue
+        return vpc_cidrs[0]
+
     def get_vpc_and_subnet_info(self, region):
         """Get VPC and Subnet information for a specific region"""
         results = []
@@ -56,7 +76,10 @@ class AWSService:
             for vpc in vpcs:
                 vpc_id = vpc['VpcId']
                 vpc_name = self._get_tag_value(vpc.get('Tags', []))
-                vpc_cidr = vpc['CidrBlock']
+
+                # Collect every associated CIDR block (primary + secondaries)
+                vpc_cidrs = self._get_vpc_cidrs(vpc)
+                vpc_all_cidrs = ', '.join(vpc_cidrs)
 
                 # Get all subnets for this VPC
                 subnets_response = ec2_client.describe_subnets(
@@ -65,11 +88,13 @@ class AWSService:
                 subnets = subnets_response.get('Subnets', [])
 
                 if subnets:
-                    # Add entry for each subnet
                     for subnet in subnets:
                         subnet_id = subnet['SubnetId']
                         subnet_name = self._get_tag_value(subnet.get('Tags', []))
                         subnet_cidr = subnet['CidrBlock']
+
+                        # Identify which VPC CIDR this subnet belongs to
+                        parent_cidr = self._find_parent_cidr(subnet_cidr, vpc_cidrs)
 
                         # Calculate used IPs:
                         # total IPs in CIDR - 5 AWS-reserved - available
@@ -82,7 +107,8 @@ class AWSService:
                             'region': region,
                             'vpc_id': vpc_id,
                             'vpc_name': vpc_name,
-                            'vpc_cidr': vpc_cidr,
+                            'vpc_cidr': parent_cidr,
+                            'vpc_all_cidrs': vpc_all_cidrs,
                             'subnet_id': subnet_id,
                             'subnet_name': subnet_name,
                             'subnet_cidr': subnet_cidr,
@@ -94,7 +120,8 @@ class AWSService:
                         'region': region,
                         'vpc_id': vpc_id,
                         'vpc_name': vpc_name,
-                        'vpc_cidr': vpc_cidr,
+                        'vpc_cidr': vpc_cidrs[0],
+                        'vpc_all_cidrs': vpc_all_cidrs,
                         'subnet_id': '',
                         'subnet_name': '',
                         'subnet_cidr': '',
